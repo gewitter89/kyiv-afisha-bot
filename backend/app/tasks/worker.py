@@ -8,8 +8,12 @@ if settings.REDIS_URL and settings.REDIS_URL.startswith("redis://"):
     broker_url = settings.REDIS_URL
     backend_url = settings.REDIS_URL
 else:
-    broker_url = "sqla+sqlite:///C:/Users/HOMEH/Desktop/БОТЫ/бот_инфа/backend/celery_broker.db"
-    backend_url = "db+sqlite:///C:/Users/HOMEH/Desktop/БОТЫ/бот_инфа/backend/celery_results.db"
+    import os
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    broker_path = os.path.join(base_dir, 'celery_broker.db').replace('\\', '/')
+    results_path = os.path.join(base_dir, 'celery_results.db').replace('\\', '/')
+    broker_url = f"sqla+sqlite:///{broker_path}"
+    backend_url = f"db+sqlite:///{results_path}"
 
 celery_app = Celery(
     "kyiv-event-guide-tasks",

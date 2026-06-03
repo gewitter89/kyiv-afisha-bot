@@ -53,10 +53,12 @@ class Settings(BaseSettings):
 
     @property
     def SYNC_DATABASE_URL(self) -> str:
-        # For Alembic or sync scripts, we need standard postgresql://
+        # For Alembic or sync scripts, we need standard postgresql:// or sqlite://
         url = self.DATABASE_URL
         if url.startswith("postgresql+asyncpg://"):
             return url.replace("postgresql+asyncpg://", "postgresql://")
+        if url.startswith("sqlite+aiosqlite://"):
+            return url.replace("sqlite+aiosqlite://", "sqlite://")
         return url
 
 # Load settings singleton

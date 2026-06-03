@@ -3,6 +3,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_, and_
+from sqlalchemy.orm import selectinload
 from decimal import Decimal
 
 from app.core.database import get_db
@@ -25,7 +26,7 @@ async def list_events(
     db: AsyncSession = Depends(get_db),
     current_user: AdminUser = Depends(get_current_user)
 ):
-    stmt = select(DB_Event)
+    stmt = select(DB_Event).options(selectinload(DB_Event.event_sources))
     
     if status:
         stmt = stmt.where(DB_Event.status == status)
@@ -53,15 +54,14 @@ async def get_event(
     db: AsyncSession = Depends(get_db),
     current_user: AdminUser = Depends(get_current_user)
 ):
-    q = await db.execute(select(DB_Event).where(DB_Event.id == event_id))
+    q = await db.execute(
+        select(DB_Event)
+        .options(selectinload(DB_Event.event_sources))
+        .where(DB_Event.id == event_id)
+    )
     event = q.scalar_one_or_none()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    
-    # We also want to load the sources mapping
-    q_src = await db.execute(select(DB_EventSource).where(DB_EventSource.event_id == event_id))
-    event.event_sources = q_src.scalars().all()
-    
     return event
 
 @router.get("/{event_id}/possible-duplicates", response_model=List[Event])
@@ -70,7 +70,11 @@ async def get_possible_duplicates(
     db: AsyncSession = Depends(get_db),
     current_user: AdminUser = Depends(get_current_user)
 ):
-    q = await db.execute(select(DB_Event).where(DB_Event.id == event_id))
+    q = await db.execute(
+        select(DB_Event)
+        .options(selectinload(DB_Event.event_sources))
+        .where(DB_Event.id == event_id)
+    )
     event = q.scalar_one_or_none()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
@@ -86,7 +90,11 @@ async def update_event(
     db: AsyncSession = Depends(get_db),
     current_user: AdminUser = Depends(get_current_user)
 ):
-    q = await db.execute(select(DB_Event).where(DB_Event.id == event_id))
+    q = await db.execute(
+        select(DB_Event)
+        .options(selectinload(DB_Event.event_sources))
+        .where(DB_Event.id == event_id)
+    )
     event = q.scalar_one_or_none()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
@@ -105,7 +113,9 @@ async def approve_event(
     db: AsyncSession = Depends(get_db),
     current_user: AdminUser = Depends(get_current_user)
 ):
-    q = await db.execute(select(DB_Event).where(DB_Event.id == event_id))
+    q = await db.execute(
+        select(DB_Event).options(selectinload(DB_Event.event_sources)).where(DB_Event.id == event_id)
+    )
     event = q.scalar_one_or_none()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
@@ -121,7 +131,9 @@ async def reject_event(
     db: AsyncSession = Depends(get_db),
     current_user: AdminUser = Depends(get_current_user)
 ):
-    q = await db.execute(select(DB_Event).where(DB_Event.id == event_id))
+    q = await db.execute(
+        select(DB_Event).options(selectinload(DB_Event.event_sources)).where(DB_Event.id == event_id)
+    )
     event = q.scalar_one_or_none()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
@@ -137,7 +149,9 @@ async def publish_event(
     db: AsyncSession = Depends(get_db),
     current_user: AdminUser = Depends(get_current_user)
 ):
-    q = await db.execute(select(DB_Event).where(DB_Event.id == event_id))
+    q = await db.execute(
+        select(DB_Event).options(selectinload(DB_Event.event_sources)).where(DB_Event.id == event_id)
+    )
     event = q.scalar_one_or_none()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
